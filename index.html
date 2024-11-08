@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>محرك بحث الأسماء</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -105,7 +106,7 @@
 <body>
     <div class="container">
         <h2>البحث عن الأسماء</h2>
-        <input type="text" id="nameInput" placeholder="أدخل الاسم">
+        <input type="text" id="nameInput" placeholder="أدخل الاسم أو العنوان أو السجل">
         <button onclick="searchName()">بحث</button>
         <button onclick="displaySummary()">عرض مجموع الديون</button>
         <div id="results"></div>
@@ -122,25 +123,21 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.3/xlsx.full.min.js"></script>
-
     <script>
-        let excelData = [];
         let totalDinarAmount = 0;
         let totalDollarAmount = 0;
+        let excelData = [];
 
-        // دالة لتحميل بيانات ملف Excel من السيرفر
-        function loadExcelData() {
-            fetch('data.xlsx')  // مسار النسبي للملف data.xlsx
-                .then(response => response.arrayBuffer())
-                .then(data => {
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const sheetName = workbook.SheetNames[0];
-                    const sheet = workbook.Sheets[sheetName];
-                    excelData = XLSX.utils.sheet_to_json(sheet);
-                    console.log(excelData);  // تحقق من البيانات المحملة
-                })
-                .catch(error => console.error('خطأ في تحميل البيانات:', error));
+        // تحميل البيانات من ملف Excel
+        function loadExcelData(file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                excelData = XLSX.utils.sheet_to_json(sheet);
+            };
+            reader.readAsArrayBuffer(file);
         }
 
         // دالة للبحث في بيانات Excel
@@ -158,9 +155,11 @@
                 return;
             }
 
-            // البحث في بيانات Excel المحملة
+            // البحث في بيانات Excel المحملة في الحقول: الاسم، العنوان، والسجل
             const filteredResults = excelData.filter(item => 
-                item['الاسم'] && item['الاسم'].toLowerCase().includes(nameInput)
+                (item['الاسم'] && item['الاسم'].toLowerCase().includes(nameInput)) ||
+                (item['العنوان'] && item['العنوان'].toLowerCase().includes(nameInput)) ||
+                (item['السجل'] && item['السجل'].toLowerCase().includes(nameInput))
             );
 
             if (filteredResults.length === 0) {
@@ -188,7 +187,6 @@
             }
         }
 
-        // دالة لعرض المجموع الإجمالي
         function displaySummary() {
             const totalDinarElement = document.getElementById("totalDinar");
             const totalDollarElement = document.getElementById("totalDollar");
@@ -200,9 +198,6 @@
             // إظهار البطاقات بعد حساب الإجمالي
             summaryCards.style.display = 'flex';
         }
-
-        // تحميل بيانات Excel عند تحميل الصفحة
-        window.onload = loadExcelData;
     </script>
 </body>
 </html>
