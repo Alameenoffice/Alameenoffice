@@ -85,7 +85,6 @@
             font-weight: bold;
             color: #333;
         }
-        /* عرض البطاقات للمبالغ */
         .summary-cards {
             display: flex;
             justify-content: space-between;
@@ -124,23 +123,27 @@
     </div>
 
     <script>
-        let totalDinarAmount = 0;
-        let totalDollarAmount = 0;
         let excelData = [];
 
-        // تحميل البيانات من ملف Excel
-        function loadExcelData(file) {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const data = new Uint8Array(event.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                excelData = XLSX.utils.sheet_to_json(sheet);
-            };
-            reader.readAsArrayBuffer(file);
+        // دالة لتحميل البيانات من السيرفر
+        function loadExcelData() {
+            fetch('data.xlsx')
+                .then(response => response.json())
+                .then(data => {
+                    excelData = data; // حفظ البيانات
+                    console.log(excelData); // عرض البيانات للتأكد من التحميل
+                })
+                .catch(error => {
+                    console.error('خطأ في تحميل البيانات:', error);
+                });
         }
 
-        // دالة للبحث في بيانات Excel
+        // استدعاء تحميل البيانات عند تحميل الصفحة
+        window.onload = loadExcelData;
+
+        let totalDinarAmount = 0;
+        let totalDollarAmount = 0;
+
         function searchName() {
             const nameInput = document.getElementById("nameInput").value.toLowerCase();
             const resultsDiv = document.getElementById("results");
@@ -149,14 +152,12 @@
             resultsDiv.innerHTML = ""; // مسح النتائج السابقة
             summaryCards.style.display = 'none'; // إخفاء البطاقات حتى يتم حساب النتائج
 
-            // إذا كانت البيانات غير محملة بعد، لا نعرض النتائج
             if (excelData.length === 0) {
-                resultsDiv.innerHTML = "<p>الرجاء تحميل البيانات أولاً</p>";
+                resultsDiv.innerHTML = "<p>لا توجد نتائج</p>";
                 return;
             }
 
-            // البحث في بيانات Excel المحملة في الحقول: الاسم، العنوان، والسجل
-            const filteredResults = excelData.filter(item => 
+            const filteredResults = excelData.filter(item =>
                 (item['الاسم'] && item['الاسم'].toLowerCase().includes(nameInput)) ||
                 (item['العنوان'] && item['العنوان'].toLowerCase().includes(nameInput)) ||
                 (item['السجل'] && item['السجل'].toLowerCase().includes(nameInput))
@@ -180,7 +181,6 @@
                             <p><span class="highlight">المبلغ المتبقي:</span> ${item['المبلغ المتبقي'].toLocaleString()}</p>
                         </div>
                     `;
-                    // إضافة المبالغ إلى الإجمالي
                     totalDinarAmount += item['المبلغ بالدينار'];
                     totalDollarAmount += item['المبلغ بالدولار'];
                 });
@@ -192,10 +192,8 @@
             const totalDollarElement = document.getElementById("totalDollar");
             const summaryCards = document.getElementById("summaryCards");
 
-            // تحديث المبالغ الإجمالية
             totalDinarElement.textContent = `${totalDinarAmount.toLocaleString()} دينار`;
             totalDollarElement.textContent = `${totalDollarAmount.toLocaleString()} دولار`;
-            // إظهار البطاقات بعد حساب الإجمالي
             summaryCards.style.display = 'flex';
         }
     </script>
