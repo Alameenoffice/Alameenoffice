@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>محرك بحث الأسماء</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -85,6 +84,7 @@
             font-weight: bold;
             color: #333;
         }
+        /* عرض البطاقات للمبالغ */
         .summary-cards {
             display: flex;
             justify-content: space-between;
@@ -105,7 +105,7 @@
 <body>
     <div class="container">
         <h2>البحث عن الأسماء</h2>
-        <input type="text" id="nameInput" placeholder="أدخل الاسم أو العنوان أو السجل">
+        <input type="text" id="nameInput" placeholder="أدخل الاسم">
         <button onclick="searchName()">بحث</button>
         <button onclick="displaySummary()">عرض مجموع الديون</button>
         <div id="results"></div>
@@ -123,68 +123,47 @@
     </div>
 
     <script>
-        let excelData = [];
-
-        // دالة لتحميل البيانات من السيرفر
-        function loadExcelData() {
-            fetch('data.xlsx')
-                .then(response => response.json())
-                .then(data => {
-                    excelData = data; // حفظ البيانات
-                    console.log(excelData); // عرض البيانات للتأكد من التحميل
-                })
-                .catch(error => {
-                    console.error('خطأ في تحميل البيانات:', error);
-                });
-        }
-
-        // استدعاء تحميل البيانات عند تحميل الصفحة
-        window.onload = loadExcelData;
-
         let totalDinarAmount = 0;
         let totalDollarAmount = 0;
 
         function searchName() {
-            const nameInput = document.getElementById("nameInput").value.toLowerCase();
+            const nameInput = document.getElementById("nameInput").value;
             const resultsDiv = document.getElementById("results");
             const summaryCards = document.getElementById("summaryCards");
 
             resultsDiv.innerHTML = ""; // مسح النتائج السابقة
             summaryCards.style.display = 'none'; // إخفاء البطاقات حتى يتم حساب النتائج
 
-            if (excelData.length === 0) {
-                resultsDiv.innerHTML = "<p>لا توجد نتائج</p>";
-                return;
-            }
-
-            const filteredResults = excelData.filter(item =>
-                (item['الاسم'] && item['الاسم'].toLowerCase().includes(nameInput)) ||
-                (item['العنوان'] && item['العنوان'].toLowerCase().includes(nameInput)) ||
-                (item['السجل'] && item['السجل'].toLowerCase().includes(nameInput))
-            );
-
-            if (filteredResults.length === 0) {
-                resultsDiv.innerHTML = "<p>لا توجد نتائج</p>";
-            } else {
-                totalDinarAmount = 0;
-                totalDollarAmount = 0;
-
-                filteredResults.forEach(item => {
-                    resultsDiv.innerHTML += `
-                        <div class="result-item">
-                            <h3>${item['الاسم']}</h3>
-                            <p><span class="highlight">التسلسل:</span> ${item['التسلسل']}</p>
-                            <p><span class="highlight">العنوان:</span> ${item['العنوان']}</p>
-                            <p><span class="highlight">السجل:</span> ${item['السجل']}</p>
-                            <p><span class="highlight">المبلغ بالدينار:</span> ${item['المبلغ بالدينار'].toLocaleString()} دينار</p>
-                            <p><span class="highlight">المبلغ بالدولار:</span> ${item['المبلغ بالدولار'].toLocaleString()} دولار</p>
-                            <p><span class="highlight">المبلغ المتبقي:</span> ${item['المبلغ المتبقي'].toLocaleString()}</p>
-                        </div>
-                    `;
-                    totalDinarAmount += item['المبلغ بالدينار'];
-                    totalDollarAmount += item['المبلغ بالدولار'];
+            fetch(`/search?name=${nameInput}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length === 0) {
+                        resultsDiv.innerHTML = "<p>لا توجد نتائج</p>";
+                    } else {
+                        totalDinarAmount = 0;
+                        totalDollarAmount = 0;
+                        data.forEach(item => {
+                            resultsDiv.innerHTML += `
+                                <div class="result-item">
+                                    <h3>${item.Name}</h3>
+                                    <p><span class="highlight">التسلسل:</span> ${item.ID}</p>
+                                    <p><span class="highlight">العنوان:</span> ${item.Address}</p>
+                                    <p><span class="highlight">السجل:</span> ${item.Record}</p>
+                                    <p><span class="highlight">المبلغ بالدينار:</span> ${item.AmountDinar.toLocaleString()} دينار</p>
+                                    <p><span class="highlight">المبلغ بالدولار:</span> ${item.AmountDollar.toLocaleString()} دولار</p>
+                                    <p><span class="highlight">المبلغ المتبقي:</span> ${item.RemainingAmount.toLocaleString()}</p>
+                                </div>
+                            `;
+                            // إضافة المبالغ إلى الإجمالي
+                            totalDinarAmount += item.AmountDinar;
+                            totalDollarAmount += item.AmountDollar;
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error("خطأ في البحث:", error);
+                    resultsDiv.innerHTML = "لا توجد نتائج";
                 });
-            }
         }
 
         function displaySummary() {
@@ -192,8 +171,11 @@
             const totalDollarElement = document.getElementById("totalDollar");
             const summaryCards = document.getElementById("summaryCards");
 
+            // تحديث المبالغ الإجمالية
             totalDinarElement.textContent = `${totalDinarAmount.toLocaleString()} دينار`;
             totalDollarElement.textContent = `${totalDollarAmount.toLocaleString()} دولار`;
+
+            // إظهار البطاقات بعد حساب الإجمالي
             summaryCards.style.display = 'flex';
         }
     </script>
