@@ -3,114 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول</title>
+    <title>محرك بحث الأسماء</title>
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
         body {
+            font-family: Arial, sans-serif;
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background-color: #f2f2f2;
-            font-family: Arial, sans-serif;
-            margin: 0;
-        }
-
-        .login-container {
-            background-color: #fff;
+            background-color: #f0f2f5;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            width: 300px;
+        }
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
             text-align: center;
         }
-
         h2 {
             color: #333;
+            margin-bottom: 20px;
         }
-
-        .form-group {
-            margin-bottom: 15px;
-            text-align: left;
-        }
-
-        label {
-            display: block;
-            font-size: 14px;
-            color: #555;
-        }
-
-        input[type="text"],
-        input[type="password"] {
+        input[type="text"] {
             width: 100%;
             padding: 10px;
+            margin-bottom: 10px;
             border: 1px solid #ddd;
             border-radius: 5px;
-            margin-top: 5px;
-            box-sizing: border-box;
         }
-
         button {
             width: 100%;
             padding: 10px;
             background-color: #4CAF50;
-            color: white;
+            color: #fff;
             border: none;
             border-radius: 5px;
             font-size: 16px;
             cursor: pointer;
+            margin-top: 10px;
         }
-
         button:hover {
             background-color: #45a049;
         }
-
-        .error {
-            color: red;
+        #results {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .result-item {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+        .result-item:hover {
+            transform: scale(1.02);
+        }
+        .result-item h3 {
+            color: #4CAF50;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        .result-item p {
             font-size: 14px;
-            margin-top: 10px;
+            color: #555;
+            margin: 4px 0;
+        }
+        .highlight {
+            font-weight: bold;
+            color: #333;
+        }
+        /* عرض البطاقات للمبالغ */
+        .summary-cards {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .card {
+            flex: 1;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #4CAF50;
+            color: #fff;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <h2>تسجيل الدخول</h2>
-        <form id="loginForm">
-            <div class="form-group">
-                <label for="username">اسم المستخدم:</label>
-                <input type="text" id="username" name="username" required>
+    <div class="container">
+        <h2>البحث عن الأسماء</h2>
+        <input type="text" id="nameInput" placeholder="أدخل الاسم">
+        <button onclick="searchName()">بحث</button>
+        <button onclick="displaySummary()">عرض مجموع الديون</button>
+        <div id="results"></div>
+        <!-- قسم عرض المبالغ الإجمالية -->
+        <div class="summary-cards" id="summaryCards" style="display:none;">
+            <div class="card">
+                <h3>المجموع بالدينار</h3>
+                <p id="totalDinar">0 دينار</p>
             </div>
-            <div class="form-group">
-                <label for="password">كلمة المرور:</label>
-                <input type="password" id="password" name="password" required>
+            <div class="card">
+                <h3>المجموع بالدولار</h3>
+                <p id="totalDollar">0 دولار</p>
             </div>
-            <button type="button" onclick="validateLogin()">تسجيل الدخول</button>
-            <div id="error-message" class="error"></div>
-        </form>
+        </div>
     </div>
 
     <script>
-        // قائمة المستخدمين المعتمدين
-        const users = [
-            { username: "admin", password: "1234" },
-            { username: "user1", password: "abcd" },
-            { username: "user2", password: "5678" }
-        ];
+        let totalDinarAmount = 8000;
+        let totalDollarAmount = 900;
 
-        function validateLogin() {
-            // جلب اسم المستخدم وكلمة المرور المدخلين
-            const username = document.getElementById("username").value;
-            const password = document.getElementById("password").value;
+        function searchName() {
+            const nameInput = document.getElementById("nameInput").value;
+            const resultsDiv = document.getElementById("results");
+            const summaryCards = document.getElementById("summaryCards");
 
-            // البحث عن المستخدم المدخل ضمن القائمة
-            const user = users.find(u => u.username === username && u.password === password);
+            resultsDiv.innerHTML = ""; // مسح النتائج السابقة
+            summaryCards.style.display = 'none'; // إخفاء البطاقات حتى يتم حساب النتائج
 
-            if (user) {
-                // التوجيه إلى صفحة جوجل عند نجاح الدخول
-                window.location.href = "https://www.google.com";
-            } else {
-                // رسالة خطأ عند فشل تسجيل الدخول
-                document.getElementById("error-message").textContent = "اسم المستخدم أو كلمة المرور غير صحيحة";
-            }
+            fetch(`/search?name=${nameInput}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length === 0) {
+                        resultsDiv.innerHTML = "<p>لا توجد نتائج</p>"; // تم تعديل الجملة هنا
+                    } else {
+                        totalDinarAmount = 0;
+                        totalDollarAmount = 5000;
+
+                        data.forEach(item => {
+                            resultsDiv.innerHTML += `
+                                <div class="result-item">
+                                    <h3>${item.Name}</h3>
+                                    <p><span class="highlight">التسلسل:</span> ${item.ID}</p>
+                                    <p><span class="highlight">العنوان:</span> ${item.Address}</p>
+                                    <p><span class="highlight">السجل:</span> ${item.Record}</p>
+                                    <p><span class="highlight">المبلغ بالدينار:</span> ${item.AmountDinar.toLocaleString()} دينار</p>
+                                    <p><span class="highlight">المبلغ بالدولار:</span> ${item.AmountDollar.toLocaleString()} دولار</p>
+                                    <p><span class="highlight">المبلغ المتبقي:</span> ${item.RemainingAmount.toLocaleString()}</p>
+                                </div>
+                            `;
+                            // إضافة المبالغ إلى الإجمالي
+                            totalDinarAmount += item.AmountDinar;
+                            totalDollarAmount += item.AmountDollar;
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error("خطأ في البحث:", error);
+                    resultsDiv.innerHTML = "لا توجد نتائج"; // تم تعديل الجملة هنا
+                });
+        }
+
+        function displaySummary() {
+            const totalDinarElement = document.getElementById("totalDinar");
+            const totalDollarElement = document.getElementById("totalDollar");
+            const summaryCards = document.getElementById("summaryCards");
+
+            // تحديث المبالغ الإجمالية
+            totalDinarElement.textContent = `${totalDinarAmount.toLocaleString()} دينار`;
+            totalDollarElement.textContent = `${totalDollarAmount.toLocaleString()} دولار`;
+
+            // إظهار البطاقات بعد حساب الإجمالي
+            summaryCards.style.display = 'flex';
         }
     </script>
 </body>
